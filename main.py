@@ -6,7 +6,12 @@
 #https://pypi.org/project/python-barcode/
 #https://docs.python.org/3/library/ctypes.html
 #https://pypi.org/project/PyQt5/
+import win32api
+import win32con
+import win32file
+import win32process
 
+import Server
 import barcode.base
 import win32gui
 from PyQt5 import QtCore
@@ -16,7 +21,8 @@ from barcode.writer import ImageWriter
 import sys
 import ctypes.wintypes
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel
-
+import pyshorteners
+from pdf417 import encode,render_image,render_svg
 # Der Code für die Eventhook wurde mit leichten Veränderungen vollständig von dem folgenden Beitrag übernommen https://stackoverflow.com/questions/15849564/how-to-use-winapi-setwineventhook-in-python , entsprechende Abschnitte werden mit dem Präfix "Eventhook" bezeichnet
 # Hier Werden die Eventkonstanten und die Kontext-Flagge gesetzt, welche darüber bestimmen, welche Events konkret gefiltert werden sollen und welche ignoriert werden sollen
 # Zu einer genaueren Dokumentation der Kontextflaggen sei hierbei auf die Dokumentation hier verwiesen #https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwineventhook
@@ -31,6 +37,13 @@ user32 = ctypes.windll.user32
 ole32 = ctypes.windll.ole32
 
 ole32.CoInitialize(0)
+
+longurl = "2p994vk9"
+type_tiny = pyshorteners.Shortener()
+short_url = "https://tinyurl.com/2p994vk9"
+print(short_url)
+
+
 
 # Recherchen bisweilen noch nicht fortgeschritten genug, aktuelle Hypothese ist, dass es sich um eine Wrapper Funktion handelt, aufgrund der Nutzung von "ctypes"
 WinEventProcType = ctypes.WINFUNCTYPE(
@@ -57,7 +70,7 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread, dwmsE
         modifiedCoordinates = calculateWindowDimensions(activeWindow)
         moveAndSizeOperation(modifiedCoordinates)
     if (event == 3):
-        barcodeGenerator(hex(activeWindow))
+        barcodeGenerator(short_url)
         modifiedCoordinates = calculateWindowDimensions(activeWindow)
         moveAndSizeOperation(modifiedCoordinates)
         overlayWindow.show()
@@ -84,8 +97,10 @@ barcode.base.Barcode.default_writer_options["write_text"] = False
 
 # Funktion mit welchen der Barcode generiert wird, hierbei wird der Funktion die Id des Fensters übergeben und als Input für die Code128()-Funktion genutzt. Aufgrund der Beschaffenheit akzeptiert die Code128()-Funktion nur Strings als Input, weswegen ein effektiverer Input in dieser Version (bislang) noch nicht möglich ist
 def barcodeGenerator(windowId):
-    with open(f'ExampleBarcode.png', "wb") as f:
-        Code128(f'{windowId}', writer=ImageWriter()).write(f)
+    print(windowId)
+    code = encode('192.168.178.45', security_level=2)
+    image = render_image(code,padding=0)
+    image.save("ExampleBarcode.png")
 
 
 #Funktion mit welchen die Dimensionen des aktiven Fensters kalkuliert wird. Hierbei deren die GetWindowRect() und GetClientRect() - Funktionen genutzt, um die größe und die Ränder zu ermitteln,
@@ -105,9 +120,9 @@ def calculateWindowDimensions(windowId):
 def moveAndSizeOperation(windowDimensions):
     overlayWindow.resize(windowDimensions[1], windowDimensions[2])
     overlayWindow.move(windowDimensions[3], windowDimensions[4])
-    displayedBarcode.move(windowDimensions[1] * 0.60, 0)
+    displayedBarcode.move(int(windowDimensions[1] * 0.60), 0)
     currentPixmap = QPixmap("ExampleBarcode.png")
-    displayedBarcode.setPixmap(currentPixmap.scaled(200, windowDimensions[0] * 4))
+    displayedBarcode.setPixmap(currentPixmap.scaled(300, windowDimensions[0] * 4))
     overlayWindow.update()
 
 
@@ -116,8 +131,10 @@ if __name__ == '__main__':
     # In diesem Block wird das anfänglich aktivste, vorderste Fenster ermittelt, welches im Fokus liegt, dessen ID wird dann der barcode-Funktion übergeben, um einen korrespondierenden Barcode dynamisch zu generieren
     handleId = win32gui.GetForegroundWindow()
     win32gui.SetForegroundWindow(handleId)
+    meinIp = Server.get_ip()
 
-    barcodeGenerator(hex(handleId))
+
+    barcodeGenerator(short_url)
 
     # Block der die Erschaffung des Fensters übernimmt und die Elemente festlegt, das Fenster besteht aus einem unsichtbaren Hauptfenster und einem Label, wo alles angezeigt wird
     app = QApplication(sys.argv)
@@ -134,6 +151,14 @@ if __name__ == '__main__':
 
     #Finaler Block, der für den Start die ersten Operationen durchführt
     windowDimensions = calculateWindowDimensions(handleId)
+    print(f"Hier ist die Id {handleId}")
+    name = win32gui.GetWindowText(handleId)
+    print(f"Der Filename ist {name}",type(name))
+
     moveAndSizeOperation(windowDimensions)
+
     overlayWindow.show()
+
+    
+
     sys.exit(app.exec_())
