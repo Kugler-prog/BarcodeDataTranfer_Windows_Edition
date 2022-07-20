@@ -1,5 +1,6 @@
 
 #Snippet entnommen von dieser Seite https://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib/28950776#28950776
+#Dieser Code ermittelt die lokale IP-Adresse des Rechners
 import socket
 
 
@@ -17,4 +18,3 @@ def get_ip():
     return IP
 
 
-print(get_ip())

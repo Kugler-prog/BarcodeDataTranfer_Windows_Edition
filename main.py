@@ -6,23 +6,26 @@
 #https://pypi.org/project/python-barcode/
 #https://docs.python.org/3/library/ctypes.html
 #https://pypi.org/project/PyQt5/
-import win32api
-import win32con
-import win32file
+import http.server
+import os
+import threading
+from http.server import  HTTPServer
+import psutil
 import win32process
-
+from PyQt5.QtCore import QObject, QThread, pyqtSignal
 import Server
 import barcode.base
 import win32gui
 from PyQt5 import QtCore
 from PyQt5.QtGui import QPixmap
-from barcode import Code128
-from barcode.writer import ImageWriter
 import sys
 import ctypes.wintypes
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel
 import pyshorteners
+from selenium import webdriver
 from pdf417 import encode,render_image,render_svg
+from webdriver_manager.firefox import GeckoDriverManager
+from selenium.webdriver.firefox.service import Service as FirefoxService
 # Der Code für die Eventhook wurde mit leichten Veränderungen vollständig von dem folgenden Beitrag übernommen https://stackoverflow.com/questions/15849564/how-to-use-winapi-setwineventhook-in-python , entsprechende Abschnitte werden mit dem Präfix "Eventhook" bezeichnet
 # Hier Werden die Eventkonstanten und die Kontext-Flagge gesetzt, welche darüber bestimmen, welche Events konkret gefiltert werden sollen und welche ignoriert werden sollen
 # Zu einer genaueren Dokumentation der Kontextflaggen sei hierbei auf die Dokumentation hier verwiesen #https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwineventhook
@@ -31,19 +34,32 @@ EVENT_SYSTEM_FOREGROUND = 0x0003
 EVENT_OBJECT_LOCATIONCHANGE = 0x0016
 EVENT_OBJECT_SIZECHANGE = 0x000A
 WINEVENT_OUTOFCONTEXT = 0x0000
-
 # Eventhook - Zugriff auf die beiden nötigen .dll Dateien und ihren Funktionen mithilfe von ctypes, da die Hookfunktionen von .dll-Dateien gehandhabt werden
 user32 = ctypes.windll.user32
 ole32 = ctypes.windll.ole32
-
+ipOfDevice = Server.get_ip()
 ole32.CoInitialize(0)
 
-longurl = "2p994vk9"
-type_tiny = pyshorteners.Shortener()
-short_url = "https://tinyurl.com/2p994vk9"
-print(short_url)
+
+#Einrichten der Directories, Standardports und Handlers für die beiden Webserver, über welche dann die Daten übertragen werden (C und D als Defaults in diesem Fall
+C_DIRECTORY = "C:\\"
+D_DIRECTORY = "D:\\"
+
+C_PORT = 8000
+D_PORT = 8080
+
+class C_Handler(http.server.SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=C_DIRECTORY, **kwargs)
 
 
+class D_Handler(http.server.SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=D_DIRECTORY, **kwargs)
+
+
+cDirectionServer = HTTPServer(("", C_PORT), C_Handler)
+dDirectionServer = HTTPServer(("", D_PORT), D_Handler)
 
 # Recherchen bisweilen noch nicht fortgeschritten genug, aktuelle Hypothese ist, dass es sich um eine Wrapper Funktion handelt, aufgrund der Nutzung von "ctypes"
 WinEventProcType = ctypes.WINFUNCTYPE(
@@ -70,12 +86,19 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread, dwmsE
         modifiedCoordinates = calculateWindowDimensions(activeWindow)
         moveAndSizeOperation(modifiedCoordinates)
     if (event == 3):
-        barcodeGenerator(short_url)
         modifiedCoordinates = calculateWindowDimensions(activeWindow)
         moveAndSizeOperation(modifiedCoordinates)
         overlayWindow.show()
-    if (event == 23):
-        overlayWindow.hide()
+        activeProcesses = win32process.GetWindowThreadProcessId(activeWindow)
+        print(activeProcesses[1])
+        commandLineInput = psutil.Process(activeProcesses[1]).cmdline()
+        filePath = commandLineInput[len(commandLineInput) - 1]
+        print(filePath)
+        barcodeGenerator(ipOfDevice, filePath)
+
+
+
+
 
 # Eventhook - Code und Dokumentation müssen hierbei noch eingehender studiert werden, aber aus der Dokumentation zu der Windows WinEventHook lässt sich schließen, dass hierbei die hook initialisiert wird, welche die Events filtert
 user32.SetWinEventHook.restype = ctypes.wintypes.HANDLE
@@ -95,12 +118,27 @@ hook = user32.SetWinEventHook(
 barcode.base.Barcode.default_writer_options["write_text"] = False
 
 
-# Funktion mit welchen der Barcode generiert wird, hierbei wird der Funktion die Id des Fensters übergeben und als Input für die Code128()-Funktion genutzt. Aufgrund der Beschaffenheit akzeptiert die Code128()-Funktion nur Strings als Input, weswegen ein effektiverer Input in dieser Version (bislang) noch nicht möglich ist
-def barcodeGenerator(windowId):
-    print(windowId)
-    code = encode('192.168.178.45', security_level=2)
+# In dieser Funktion wird jetzt ein PDF417-Barcode generiert,in welchen eine eigens erstellte URL encoded wird, welche aus dem Pfad für den Dateinamen besteht, mit welcher dann die Datei vom server "heruntergeladen" werden kann
+def barcodeGenerator(windowId, filePathName):
+    print("Der Pfad ist", filePathName)
+    convertedPath = filePathName.replace("\\", "/")
+    pathDrivePrefix = filePathName[:2]
+
+    if(pathDrivePrefix == "C:"):
+        print("Ein C-Verzeichnis")
+        currentPort = C_PORT
+
+    elif(pathDrivePrefix =="D:"):
+        print("Ein D-Verzeichnis ")
+        currentPort = D_PORT
+
+
+    url = f"{windowId}:{currentPort}/{convertedPath[3:]}"
+    code = encode(url, security_level=0)
     image = render_image(code,padding=0)
     image.save("ExampleBarcode.png")
+
+
 
 
 #Funktion mit welchen die Dimensionen des aktiven Fensters kalkuliert wird. Hierbei deren die GetWindowRect() und GetClientRect() - Funktionen genutzt, um die größe und die Ränder zu ermitteln,
@@ -120,21 +158,26 @@ def calculateWindowDimensions(windowId):
 def moveAndSizeOperation(windowDimensions):
     overlayWindow.resize(windowDimensions[1], windowDimensions[2])
     overlayWindow.move(windowDimensions[3], windowDimensions[4])
-    displayedBarcode.move(int(windowDimensions[1] * 0.60), 0)
+    displayedBarcode.move(int(windowDimensions[1] * 0.40), 0)
     currentPixmap = QPixmap("ExampleBarcode.png")
-    displayedBarcode.setPixmap(currentPixmap.scaled(300, windowDimensions[0] * 4))
+    displayedBarcode.setPixmap(currentPixmap)
     overlayWindow.update()
-
 
 # Hauptfunktion, hier wird das Overlay erstmalig initialisiert und entsprechend von den Attributen und Windowflags modifiziert, ebenso wird die QT-Hauptloop gestartet
 if __name__ == '__main__':
     # In diesem Block wird das anfänglich aktivste, vorderste Fenster ermittelt, welches im Fokus liegt, dessen ID wird dann der barcode-Funktion übergeben, um einen korrespondierenden Barcode dynamisch zu generieren
     handleId = win32gui.GetForegroundWindow()
     win32gui.SetForegroundWindow(handleId)
-    meinIp = Server.get_ip()
+
+    activeProcesses = win32process.GetWindowThreadProcessId(handleId)
+    print(activeProcesses[1])
+    activeCommandLineInputs = psutil.Process(activeProcesses[1]).cmdline()
+    filePath = activeCommandLineInputs[len(activeCommandLineInputs) - 1]
+    print(filePath)
 
 
-    barcodeGenerator(short_url)
+
+    barcodeGenerator(ipOfDevice, filePath)
 
     # Block der die Erschaffung des Fensters übernimmt und die Elemente festlegt, das Fenster besteht aus einem unsichtbaren Hauptfenster und einem Label, wo alles angezeigt wird
     app = QApplication(sys.argv)
@@ -149,16 +192,28 @@ if __name__ == '__main__':
     overlayWindow.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents, True)
     displayedBarcode.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents, True)
 
+
     #Finaler Block, der für den Start die ersten Operationen durchführt
     windowDimensions = calculateWindowDimensions(handleId)
-    print(f"Hier ist die Id {handleId}")
+    #print(f"Hier ist die Id {handleId}")
     name = win32gui.GetWindowText(handleId)
-    print(f"Der Filename ist {name}",type(name))
-
+    #print(f"Der Fenstername ist {name}",type(name))
+    #print("Windowinfo is",win32process.GetWindowThreadProcessId(handleId))
+    win32gui.UpdateWindow(handleId)
     moveAndSizeOperation(windowDimensions)
-
     overlayWindow.show()
 
-    
+
+    #Aktivieren der Threads für die beiden Verzeichnisserver
+    cThreadedServer = threading.Thread(name="daemon_server", target=cDirectionServer.serve_forever)
+    cThreadedServer.daemon = True
+    cThreadedServer.start()
+
+    dThreadedServer = threading.Thread(name="second_server", target=dDirectionServer.serve_forever)
+    dThreadedServer.daemon = True
+    dThreadedServer.start()
+
+
+
 
     sys.exit(app.exec_())
