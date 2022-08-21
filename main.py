@@ -11,19 +11,26 @@ import os
 import threading
 from http.server import  HTTPServer
 import psutil
+import validators
 import win32process
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 import Server
 import barcode.base
 import win32gui
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtSvg
 from PyQt5.QtGui import QPixmap
 import sys
 import ctypes.wintypes
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel
 import pyshorteners
+import aztec_code_generator
 from selenium import webdriver
 from pdf417 import encode,render_image,render_svg
+from pyqt_svg_label import SvgLabel
+import qrcode.image.svg
+import segno
+import win32com.client
+from pywinauto import Application
 from webdriver_manager.firefox import GeckoDriverManager
 from selenium.webdriver.firefox.service import Service as FirefoxService
 # Der Code für die Eventhook wurde mit leichten Veränderungen vollständig von dem folgenden Beitrag übernommen https://stackoverflow.com/questions/15849564/how-to-use-winapi-setwineventhook-in-python , entsprechende Abschnitte werden mit dem Präfix "Eventhook" bezeichnet
@@ -51,6 +58,7 @@ D_PORT = 8080
 class C_Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=C_DIRECTORY, **kwargs)
+        print("activated")
 
 
 class D_Handler(http.server.SimpleHTTPRequestHandler):
@@ -86,15 +94,18 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread, dwmsE
         modifiedCoordinates = calculateWindowDimensions(activeWindow)
         moveAndSizeOperation(modifiedCoordinates)
     if (event == 3):
+        print("Das aktive Fenster ist", win32gui.GetWindowText(activeWindow))
         modifiedCoordinates = calculateWindowDimensions(activeWindow)
         moveAndSizeOperation(modifiedCoordinates)
-        overlayWindow.show()
-        activeProcesses = win32process.GetWindowThreadProcessId(activeWindow)
-        print(activeProcesses[1])
-        commandLineInput = psutil.Process(activeProcesses[1]).cmdline()
-        filePath = commandLineInput[len(commandLineInput) - 1]
-        print(filePath)
-        barcodeGenerator(ipOfDevice, filePath)
+        name = win32gui.GetWindowText(activeWindow)
+        restul = aquireInfo(activeWindow)
+        print("Das restul ist",restul)
+        print("wir haben hier nen leeren")
+        link = getBrowserThingy(activeWindow)
+        print(link)
+        barcodeGenerator(ipOfDevice, restul)
+
+
 
 
 
@@ -121,22 +132,60 @@ barcode.base.Barcode.default_writer_options["write_text"] = False
 # In dieser Funktion wird jetzt ein PDF417-Barcode generiert,in welchen eine eigens erstellte URL encoded wird, welche aus dem Pfad für den Dateinamen besteht, mit welcher dann die Datei vom server "heruntergeladen" werden kann
 def barcodeGenerator(windowId, filePathName):
     print("Der Pfad ist", filePathName)
+    flag = ""
+    convertedPath = ""
     convertedPath = filePathName.replace("\\", "/")
     pathDrivePrefix = filePathName[:2]
-
     if(pathDrivePrefix == "C:"):
         print("Ein C-Verzeichnis")
-        currentPort = C_PORT
-
+        flag = C_PORT
     elif(pathDrivePrefix =="D:"):
         print("Ein D-Verzeichnis ")
-        currentPort = D_PORT
-
-
+        flag = D_PORT
+    currentPort = flag
     url = f"{windowId}:{currentPort}/{convertedPath[3:]}"
-    code = encode(url, security_level=0)
-    image = render_image(code,padding=0)
+    print("Der Pfad ist",url)
+    image = segno.make(url)
     image.save("ExampleBarcode.png")
+    currentPixmap = QPixmap("ExampleBarcode.png")
+    displayedBarcode.setPixmap(currentPixmap)
+
+
+def aquireInfo(hwndName):
+    print(hwndName, win32gui.GetWindowText(hwndName))
+    pathResult = ""
+    text = win32gui.GetWindowText(hwndName)
+    print(type(win32gui.GetWindowText(hwndName)))
+    Username = os.getenv("username")
+    path = os.path.join("C:\\","Users",Username,"AppData","Roaming","Microsoft","Windows","Recent")
+    print(os.listdir(path))
+    for item in os.listdir(path):
+        test = item[:-4]
+        #print(item)
+        if( test in text):
+            print("habe das entsprechende Item gefunden")
+            fileThingy = os.path.join(path,item)
+            print(fileThingy)
+            shell = win32com.client.Dispatch("WScript.Shell")
+            shortcut = shell.CreateShortcut(fileThingy)
+            pathResult = shortcut.Targetpath
+            print(pathResult)
+    return pathResult
+
+def getBrowserThingy(hwnd):
+    linkforReturn = ""
+    text = win32gui.GetWindowText(hwnd)
+    if("Chrome" in text):
+        print("hier ist ein browser")
+        app = Application(backend="uia")
+        app.connect(handle=hwnd)
+        element_name = "Adress- und Suchleiste"
+        dlg = app.top_window()
+        wrapper = dlg.child_window(title=element_name, control_type="Edit")
+        print(wrapper.get_value())
+        linkforReturn = wrapper.get_value()
+    return linkforReturn
+
 
 
 
@@ -156,6 +205,7 @@ def calculateWindowDimensions(windowId):
 # Diese Funktion übernimmt die Operationen zur Veränderung der Größe und Lage des Fensters, wenn das aktive Fenster bewegt oder in der Größe verändert wird. Hierbei wird auch die Pixmap,
 # welche den Barcode anzeigt aktualisiert, wenn sich das aktive Fenster zwischendurch ändern sollte, wodurch sich auch der Inhalt des Barcodes ändern würde
 def moveAndSizeOperation(windowDimensions):
+
     overlayWindow.resize(windowDimensions[1], windowDimensions[2])
     overlayWindow.move(windowDimensions[3], windowDimensions[4])
     displayedBarcode.move(int(windowDimensions[1] * 0.40), 0)
@@ -169,20 +219,16 @@ if __name__ == '__main__':
     handleId = win32gui.GetForegroundWindow()
     win32gui.SetForegroundWindow(handleId)
 
-    activeProcesses = win32process.GetWindowThreadProcessId(handleId)
-    print(activeProcesses[1])
-    activeCommandLineInputs = psutil.Process(activeProcesses[1]).cmdline()
-    filePath = activeCommandLineInputs[len(activeCommandLineInputs) - 1]
-    print(filePath)
 
 
 
-    barcodeGenerator(ipOfDevice, filePath)
+
+
 
     # Block der die Erschaffung des Fensters übernimmt und die Elemente festlegt, das Fenster besteht aus einem unsichtbaren Hauptfenster und einem Label, wo alles angezeigt wird
     app = QApplication(sys.argv)
     overlayWindow = QWidget()
-    displayedBarcode = QLabel()
+    displayedBarcode = SvgLabel()
     pixMap = QPixmap("ExampleBarcode.png")
     displayedBarcode.setParent(overlayWindow)
 
