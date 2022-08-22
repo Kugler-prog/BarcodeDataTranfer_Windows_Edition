@@ -10,8 +10,7 @@ import http.server
 import os
 import threading
 from http.server import  HTTPServer
-import psutil
-import validators
+
 import win32process
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 import Server
@@ -23,16 +22,12 @@ import sys
 import ctypes.wintypes
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel
 import pyshorteners
-import aztec_code_generator
-from selenium import webdriver
+
 from pdf417 import encode,render_image,render_svg
-from pyqt_svg_label import SvgLabel
-import qrcode.image.svg
 import segno
 import win32com.client
 from pywinauto import Application
-from webdriver_manager.firefox import GeckoDriverManager
-from selenium.webdriver.firefox.service import Service as FirefoxService
+
 # Der Code für die Eventhook wurde mit leichten Veränderungen vollständig von dem folgenden Beitrag übernommen https://stackoverflow.com/questions/15849564/how-to-use-winapi-setwineventhook-in-python , entsprechende Abschnitte werden mit dem Präfix "Eventhook" bezeichnet
 # Hier Werden die Eventkonstanten und die Kontext-Flagge gesetzt, welche darüber bestimmen, welche Events konkret gefiltert werden sollen und welche ignoriert werden sollen
 # Zu einer genaueren Dokumentation der Kontextflaggen sei hierbei auf die Dokumentation hier verwiesen #https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwineventhook
@@ -97,13 +92,13 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread, dwmsE
         print("Das aktive Fenster ist", win32gui.GetWindowText(activeWindow))
         modifiedCoordinates = calculateWindowDimensions(activeWindow)
         moveAndSizeOperation(modifiedCoordinates)
-        name = win32gui.GetWindowText(activeWindow)
         restul = aquireInfo(activeWindow)
         print("Das restul ist",restul)
         print("wir haben hier nen leeren")
         link = getBrowserThingy(activeWindow)
         print(link)
         barcodeGenerator(ipOfDevice, restul)
+        overlayWindow.update()
 
 
 
@@ -144,11 +139,17 @@ def barcodeGenerator(windowId, filePathName):
         flag = D_PORT
     currentPort = flag
     url = f"{windowId}:{currentPort}/{convertedPath[3:]}"
-    print("Der Pfad ist",url)
-    image = segno.make(url)
-    image.save("ExampleBarcode.png")
-    currentPixmap = QPixmap("ExampleBarcode.png")
-    displayedBarcode.setPixmap(currentPixmap)
+    print("Das Ergebnis ist",type(url))
+    image = segno.make_qr(content = url)
+    image.save("ExampleBarcode.png",scale = 2)
+    pixMap = QPixmap("ExampleBarcode.png")
+
+
+    displayedBarcode.setPixmap(pixMap)
+
+    overlayWindow.update()
+
+
 
 
 def aquireInfo(hwndName):
@@ -228,9 +229,11 @@ if __name__ == '__main__':
     # Block der die Erschaffung des Fensters übernimmt und die Elemente festlegt, das Fenster besteht aus einem unsichtbaren Hauptfenster und einem Label, wo alles angezeigt wird
     app = QApplication(sys.argv)
     overlayWindow = QWidget()
-    displayedBarcode = SvgLabel()
+    displayedBarcode = QLabel()
     pixMap = QPixmap("ExampleBarcode.png")
+    displayedBarcode.setPixmap(pixMap)
     displayedBarcode.setParent(overlayWindow)
+
 
     #Festlegen der Attribute und Flaggen
     overlayWindow.setWindowFlags(QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowStaysOnTopHint)
