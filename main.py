@@ -22,11 +22,12 @@ import sys
 import ctypes.wintypes
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel
 import pyshorteners
-
+import psutil
 from pdf417 import encode,render_image,render_svg
 import segno
 import win32com.client
 from pywinauto import Application
+import requests
 
 # Der Code für die Eventhook wurde mit leichten Veränderungen vollständig von dem folgenden Beitrag übernommen https://stackoverflow.com/questions/15849564/how-to-use-winapi-setwineventhook-in-python , entsprechende Abschnitte werden mit dem Präfix "Eventhook" bezeichnet
 # Hier Werden die Eventkonstanten und die Kontext-Flagge gesetzt, welche darüber bestimmen, welche Events konkret gefiltert werden sollen und welche ignoriert werden sollen
@@ -41,7 +42,7 @@ user32 = ctypes.windll.user32
 ole32 = ctypes.windll.ole32
 ipOfDevice = Server.get_ip()
 ole32.CoInitialize(0)
-
+listofProcesses = []
 
 #Einrichten der Directories, Standardports und Handlers für die beiden Webserver, über welche dann die Daten übertragen werden (C und D als Defaults in diesem Fall
 C_DIRECTORY = "C:\\"
@@ -93,16 +94,36 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread, dwmsE
         modifiedCoordinates = calculateWindowDimensions(activeWindow)
         moveAndSizeOperation(modifiedCoordinates)
         restul = aquireInfo(activeWindow)
-        print("Das restul ist",restul)
-        print("wir haben hier nen leeren")
-        link = getBrowserThingy(activeWindow)
-        print(link)
-        barcodeGenerator(ipOfDevice, restul)
-        overlayWindow.update()
+        print("Das restul ist", restul)
+        if (restul == ""):
+          print("wir haben hier nen leeren, suche jetzt einen Link")
+          link = getBrowserThingy(activeWindow)
+          print(link)
+          if (link == ""):
+              lin = getExplorerThingy()
+              print("Der lin ist,", lin)
+              if (lin in listofProcesses):
+                  print("Der betreffende Prozess ist ein Microsoft Prozess", lin)
+          else:
+              barcodeGeneratorForUrl(link)
+              return
+
+        else:
+            barcodeGenerator(ipOfDevice, restul)
+            return
 
 
 
 
+
+def getExplorerThingy():
+    WindowsProcessName = ""
+    hwnd = win32gui.GetForegroundWindow()
+    id = win32process.GetWindowThreadProcessId(hwnd)
+    print(id)
+    print(psutil.pids())
+
+    return WindowsProcessName
 
 
 
@@ -141,19 +162,26 @@ def barcodeGenerator(windowId, filePathName):
     url = f"{windowId}:{currentPort}/{convertedPath[3:]}"
     print("Das Ergebnis ist",type(url))
     image = segno.make_qr(content = url)
-    image.save("ExampleBarcode.png",scale = 2)
+    image.save("ExampleBarcode.png")
     pixMap = QPixmap("ExampleBarcode.png")
-
-
     displayedBarcode.setPixmap(pixMap)
-
+    displayedBarcode.repaint()
     overlayWindow.update()
 
-
+def barcodeGeneratorForUrl(url):
+    image = segno.make_qr(content=url)
+    image.save("ExampleBarcode.png")
+    pixMap = QPixmap("ExampleBarcode.png")
+    displayedBarcode.setPixmap(pixMap)
+    displayedBarcode.repaint()
+    overlayWindow.update()
 
 
 def aquireInfo(hwndName):
     print(hwndName, win32gui.GetWindowText(hwndName))
+    WindowsProcessName = ""
+    hwnd = win32gui.GetForegroundWindow()
+    print("Der Prozess den wir haben ist",win32process.GetWindowThreadProcessId(hwnd))
     pathResult = ""
     text = win32gui.GetWindowText(hwndName)
     print(type(win32gui.GetWindowText(hwndName)))
@@ -176,6 +204,7 @@ def aquireInfo(hwndName):
 def getBrowserThingy(hwnd):
     linkforReturn = ""
     text = win32gui.GetWindowText(hwnd)
+    print(text)
     if("Chrome" in text):
         print("hier ist ein browser")
         app = Application(backend="uia")
