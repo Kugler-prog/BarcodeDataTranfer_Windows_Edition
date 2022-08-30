@@ -1,3 +1,5 @@
+import math
+
 import win32gui
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt, QObject, pyqtSignal, QThread, QRunnable, QThreadPool
@@ -42,8 +44,9 @@ class QLabelMarker(QtWidgets.QLabel):
         QLabel(self)
         pixmap = QPixmap()
         pixmap.load("CurrentCode.png")
-        self.setPixmap(pixmap.scaled(31,31))
+        self.setPixmap(pixmap.scaled(65,65))
         #self.setWindowFlags(Qt.FramelessWindowHint)
+        self.setWindowFlags(Qt.WindowStaysOnTopHint)
 
 
     #def changeImgae(self):
@@ -51,17 +54,16 @@ class QLabelMarker(QtWidgets.QLabel):
 
 
     def printing(self):
-        print("Das ist das active Fenster", win32gui.GetWindowText(win32gui.GetForegroundWindow()))
-        print(win32gui.GetForegroundWindow())
+        print("Das ist das active Fenster", win32gui.GetWindowText(win32gui.GetActiveWindow()))
+        print(win32gui.GetActiveWindow())
         qrcode = segno.make(win32gui.GetWindowText(win32gui.GetForegroundWindow()))
         qrcode.save("CurrentCode.png")
         pixmap = QPixmap("CurrentCode.png")
-        self.setPixmap(pixmap.scaled(31,31))
-        handle = win32gui.GetForegroundWindow()
-        rect = win32gui.GetWindowRect(handle)
-        print("die höhenposition ist", rect[1])
-        print("Breite ist", )
-        self.resize(rect[1])
+        self.setPixmap(pixmap.scaled(65,65))
+        rect = win32gui.GetWindowRect(win32gui.GetForegroundWindow())
+        print(rect)
+        self.move(math.floor((rect[2]-rect[0])/2),0)
+       # self.resize(rect[1]-rect[3], rect[0]-rect[1])
         print("done")
 
 
