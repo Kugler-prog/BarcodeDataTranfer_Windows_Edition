@@ -17,12 +17,15 @@ import pywin
 import win32gui
 import winshell
 from PyQt5 import QtCore,QtGui,QtWidgets
-
+from fastapi import FastAPI
 import GUI
+import Server
+import tornado.ioloop
+import tornado.web
 
 EVENT_SYSTEM_DIALOGSTART = 0x0008
 WINEVENT_OUTOFCONTEXT = 0x0000
-EVENT_SYSTEM_DIALOG_FOCUS = 0x0009
+EVENT_SYSTEM_DIALOG_FOCUS = 0x0017
 
 
 user32 = ctypes.windll.user32
@@ -32,27 +35,14 @@ ole32.CoInitialize(0)
 Wind = win32gui.GetWindowText(win32gui.GetForegroundWindow())
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread, dwmsEventTime):
     global Wind
     currentWindow = win32gui.GetWindowText(win32gui.GetForegroundWindow())
     #print("Das aktuelle Systemfenster ist",currentWindow)
     #print("Das globale Fenster ist",Wind)
     #print (event)
-    if( currentWindow != Wind):
+    if( currentWindow != Wind and event == 9):
+        volume.show()
         print("Hier ist eine Abweichung")
         Wind = currentWindow
         print(Wind)
@@ -61,6 +51,14 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread, dwmsE
                   win32api.GetSystemMetrics(92))
         print("The height ist",height)
         volume.printing()
+
+    if(event == 11):
+        volume.show()
+        volume.moveit()
+
+    if(event == 22):
+        print("Minimze")
+        volume.hide()
 
 
 
@@ -98,6 +96,21 @@ msg = ctypes.wintypes.MSG()
 
 
 
+class MainHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.write("Hello, world")
+
+
+def make_app():
+    return tornado.web.Application([
+        (r"/", MainHandler),
+    ])
+
+
+
+
+
+
 def print_hi(name):
     # Use a breakpoint in the code line below to debug your script.
     print(f'Hi, {name}')  # Press Strg+F8 to toggle the breakpoint.
@@ -106,9 +119,14 @@ def print_hi(name):
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     print_hi('PyCharm')
-    print(threading.active_count())
-    app = QtWidgets.QApplication([])
+   # app = FastAPI()
+    #@app.get("/")
+   # def root():
+     #   return {"message": "Hello World"}
+
+    #print(threading.active_count())
+   # app = QtWidgets.QApplication([])
     volume = GUI.QLabelMarker()
-    volume.show()
-    app.exec_()
+  #  volume.show()
+   # app.exec_()
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
