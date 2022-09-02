@@ -1,4 +1,5 @@
 import math
+import os
 
 import qrcode as qrcode
 import win32gui
@@ -11,6 +12,11 @@ from PyQt5.QtWidgets import QLabel
 from PIL import Image
 import short_url
 import qrcode
+import  pyshorteners
+
+import FileAquisitionandTransfer
+from FileAquisitionandTransfer import fileSearch
+import pathlib
 
 class Worker(QObject):
     finished = pyqtSignal()
@@ -50,7 +56,7 @@ class QLabelMarker(QLabel):
         QLabel(self)
         pixmap = QPixmap()
         pixmap.load("CurrentCode.png")
-        self.setPixmap(pixmap.scaled(56,56))
+        self.setPixmap(pixmap.scaled(60,60))
         self.setWindowFlags(Qt.FramelessWindowHint|Qt.WindowStaysOnTopHint)
         #self.setWindowFlags()
 
@@ -60,29 +66,38 @@ class QLabelMarker(QLabel):
 
 
     def printing(self):
+        if(len(os.listdir("FileToServe")) == 0):
+            print("Wir haben hier eine leere vor uns")
+        else:
+            for f in os.listdir("FileToServe"):
+                print(f)
+                deleteFile = os.path.join("FileToServe/", f)
+                print(deleteFile)
+                os.remove(deleteFile)
+        print(os.listdir("FileToServe"))
         print("Das ist das active Fenster", win32gui.GetWindowText(win32gui.GetActiveWindow()))
         print(win32gui.GetActiveWindow())
+        windowHandle = win32gui.GetForegroundWindow()
+        print("Wir rufen jetzt eine neue Variante auf")
 
-        qrcode = segno.make(win32gui.GetWindowText(win32gui.GetForegroundWindow()))
-        qrcode.save("CurrentCode.png", border = 4)
-        #self.load("CurrentCode.svg")
-
-        # qr = qrcode.QRCode(version=1,error_correction=qrcode.constants.ERROR_CORRECT_L,box_size=1,border=1)
-        # qr.add_data(win32gui.GetWindowText(win32gui.GetForegroundWindow()))
-        # qr.make()
-        # img = qr.make_image(fill_color="black", back_color ="white")
-        # img.save("CurrentCode.png")
-        # ig = Image.open("CurrentCode.png")
-        # new_img = ig.resize((32,32))
-        # new_img.save("CurrentCode.png","png",optimize = True)
-        # print(img.width)
-        # print(img.height)
-        # self.clear()
-        # #qrcode = segno.make(win32gui.GetWindowText(win32gui.GetForegroundWindow()))
-        # #qrcode.save("CurrentCode.png")
+        if("Google Chrome" in win32gui.GetWindowText(win32gui.GetForegroundWindow())):
+            print("Google Chrome ist aktiv")
+            linkforReturn = FileAquisitionandTransfer.urlSearch(windowHandle)
+            print(linkforReturn)
+            type_tiny = pyshorteners.Shortener()
+            short_url = type_tiny.tinyurl.short(linkforReturn)
+            qrcode = segno.make(short_url)
+            qrcode.save("CurrentCode.png", border=4)
+        else:
+            fileSearch(windowHandle)
+            fileItem = os.listdir("FileToServe")[0]
+            fileItem = fileItem.replace("\\","/")
+            fileItem = fileItem.replace(" ","%20")
+            print("Das aktuelle Itel ist",fileItem)
+            qrcode = segno.make(f"192.168.178.45:8000/{fileItem}")
+            qrcode.save("CurrentCode.png", border=4)
         pixmap = QPixmap("CurrentCode.png")
-        #
-        self.setPixmap(pixmap.scaled(56,56))
+        self.setPixmap(pixmap.scaled(60, 60))
         print("done")
 
 
@@ -93,14 +108,14 @@ class QLabelMarker(QLabel):
         newPosition = rect[0] + math.floor(aproxxomatePoint)
 
 
-        print("Ausgansgparameter:", rect, "\nDistantzzwischen dem linken und rechten Punkt beträgt:", distance,
-              "\nDer ungefähre obere Punkt beträgt", aproxxomatePoint, "\nDie Koordinate ist ungefär", newPosition)
+       # print("Ausgansgparameter:", rect, "\nDistantzzwischen dem linken und rechten Punkt beträgt:", distance,
+             # "\nDer ungefähre obere Punkt beträgt", aproxxomatePoint, "\nDie Koordinate ist ungefär", newPosition)
 
         if (rect[1] < 0):
             self.move(newPosition, rect[1] + 12)
-            print("Wir haben ein vollbild")
+           # print("Wir haben ein vollbild")
         else:
-            print("Wir haben hier einen Normie")
+            #print("Wir haben hier einen Normie")
             self.move(newPosition, rect[1])
 
 

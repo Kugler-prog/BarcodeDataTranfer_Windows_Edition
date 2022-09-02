@@ -3,6 +3,8 @@
 # Press Umschalt+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 import ctypes
+import http.server
+import os
 import threading
 import sys
 import time
@@ -22,6 +24,7 @@ import GUI
 import Server
 import tornado.ioloop
 import tornado.web
+from http.server import HTTPServer
 
 EVENT_SYSTEM_DIALOGSTART = 0x0008
 WINEVENT_OUTOFCONTEXT = 0x0000
@@ -33,6 +36,16 @@ ole32 = ctypes.windll.ole32
 ole32.CoInitialize(0)
 
 Wind = win32gui.GetWindowText(win32gui.GetForegroundWindow())
+
+
+class ServerHandler(http.server.SimpleHTTPRequestHandler):
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args, directory="FileToServe", **kwargs)
+        print("activated")
+
+
+FileServer = HTTPServer(("",8000),ServerHandler)
+
 
 
 def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread, dwmsEventTime):
@@ -118,15 +131,22 @@ def print_hi(name):
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    print_hi('PyCharm')
-   # app = FastAPI()
-    #@app.get("/")
-   # def root():
-     #   return {"message": "Hello World"}
+    print(os.listdir("FileToServe"))
+    for f in os.listdir("FileToServe"):
+        print(f)
+        deleteFile = os.path.join("FileToServe/",f)
+        print(deleteFile)
+        os.remove(deleteFile)
 
-    #print(threading.active_count())
-   # app = QtWidgets.QApplication([])
+    print_hi('PyCharm')
+    app = QtWidgets.QApplication([])
     volume = GUI.QLabelMarker()
-  #  volume.show()
-   # app.exec_()
+    volume.show()
+    print(threading.active_count())
+    FileServerThreaded = threading.Thread(name="daemon_backround_server",target=FileServer.serve_forever)
+    FileServerThreaded.daemon = "True"
+    FileServerThreaded.start()
+    print(threading.active_count())
+    app.exec_()
+    print(threading.active_count())
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
