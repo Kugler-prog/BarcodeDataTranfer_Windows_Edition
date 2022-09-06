@@ -14,6 +14,8 @@ import pythoncom
 import win32api
 from PyQt5.QtCore import QRunnable, pyqtSignal, QThread, QThreadPool
 from PyQt5.QtGui import QPixmap
+from keyboard import on_press, on_release
+from pynput import keyboard
 from win32com.storagecon import *
 import pywin
 import win32gui
@@ -55,26 +57,41 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread, dwmsE
     #print("Das globale Fenster ist",Wind)
     #print (event)
     if( currentWindow != Wind and event == 9):
-        volume.show()
-        print("Hier ist eine Abweichung")
-        Wind = currentWindow
-        print(Wind)
-        print(hex(event))
-        height = (win32api.GetSystemMetrics(33) + win32api.GetSystemMetrics(4) +
-                  win32api.GetSystemMetrics(92))
-        print("The height ist",height)
-        volume.printing()
+        volume.hide()
+    #   print("Neues Fenster erwählt")
+    #     volume.show()
+    #     print("Hier ist eine Abweichung")
+    #     Wind = currentWindow
+    #     print(Wind)
+    #     print(hex(event))
+    #     height = (win32api.GetSystemMetrics(33) + win32api.GetSystemMetrics(4) +
+    #               win32api.GetSystemMetrics(92))
+    #     print("The height ist",height)
+    #     volume.printing()
 
     if(event == 11):
         volume.show()
-        volume.moveit()
+        #volume.moveit()
 
     if(event == 22):
         print("Minimze")
         volume.hide()
 
 
+    def on_press(key):
+        try:
+            print('alphanumeric key {0} pressed'.format(
+                key.char))
+        except AttributeError:
+            print('special key {0} pressed'.format(
+                key))
 
+    def on_release(key):
+        print('{0} released'.format(
+            key))
+        if key == keyboard.Key.esc:
+            # Stop listener
+            return False
 
 
 
@@ -107,23 +124,6 @@ if hook == 0:
 
 msg = ctypes.wintypes.MSG()
 
-
-
-class MainHandler(tornado.web.RequestHandler):
-    def get(self):
-        self.write("Hello, world")
-
-
-def make_app():
-    return tornado.web.Application([
-        (r"/", MainHandler),
-    ])
-
-
-
-
-
-
 def print_hi(name):
     # Use a breakpoint in the code line below to debug your script.
     print(f'Hi, {name}')  # Press Strg+F8 to toggle the breakpoint.
@@ -147,6 +147,9 @@ if __name__ == '__main__':
     FileServerThreaded.daemon = "True"
     FileServerThreaded.start()
     print(threading.active_count())
+    monitor = GUI.KeyMonitor()
+    monitor.keyPressed.connect(volume.keyPressEvent)
+    monitor.start_monitoring()
     app.exec_()
     print(threading.active_count())
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
