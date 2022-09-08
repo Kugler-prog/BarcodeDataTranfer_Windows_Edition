@@ -2,6 +2,7 @@
 
 # Press Umschalt+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+import base64
 import ctypes
 import http.server
 import os
@@ -15,7 +16,7 @@ import win32api
 from PyQt5.QtCore import QRunnable, pyqtSignal, QThread, QThreadPool
 from PyQt5.QtGui import QPixmap
 from keyboard import on_press, on_release
-from pynput import keyboard
+import keyboard
 from win32com.storagecon import *
 import pywin
 import win32gui
@@ -26,12 +27,13 @@ import GUI
 import Server
 import tornado.ioloop
 import tornado.web
-from http.server import HTTPServer
+from http.server import HTTPServer, BaseHTTPRequestHandler, SimpleHTTPRequestHandler
+
 
 EVENT_SYSTEM_DIALOGSTART = 0x0008
 WINEVENT_OUTOFCONTEXT = 0x0000
 EVENT_SYSTEM_DIALOG_FOCUS = 0x0017
-
+key = "john"
 
 user32 = ctypes.windll.user32
 ole32 = ctypes.windll.ole32
@@ -46,9 +48,37 @@ class ServerHandler(http.server.SimpleHTTPRequestHandler):
         print("activated")
 
 
+class AuthHTTPRequestHandler(SimpleHTTPRequestHandler):
+    """Main class to present webpages and authentication."""
+
+    def do_HEAD(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+
+
+    def do_AUTHHEAD(self):
+        self.send_response(401)
+        self.send_header("WWW-Authenticate", 'Basic realm="Test"')
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+
+
+    def do_GET(self):
+        """Present frontpage with user authentication."""
+        global key
+        if self.headers.get("Authorization") == None:
+            self.do_AUTHHEAD()
+            self.wfile.write(b"no auth header received")
+        elif self.headers.get("Authorization") == "Basic " + key:
+            SimpleHTTPRequestHandler.do_GET(self)
+        else:
+            self.do_AUTHHEAD()
+            self.wfile.write(self.headers.get("Authorization").encode())
+            self.wfile.write(b"not authenticated")
+
+
 FileServer = HTTPServer(("",8000),ServerHandler)
-
-
 
 def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread, dwmsEventTime):
     global Wind
@@ -57,7 +87,8 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread, dwmsE
     #print("Das globale Fenster ist",Wind)
     #print (event)
     if( currentWindow != Wind and event == 9):
-        volume.hide()
+        #volume.hide()
+        print(win32gui.GetWindowText(win32gui.GetForegroundWindow()))
     #   print("Neues Fenster erwählt")
     #     volume.show()
     #     print("Hier ist eine Abweichung")
@@ -71,7 +102,7 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread, dwmsE
 
     if(event == 11):
         volume.show()
-        #volume.moveit()
+        volume.moveit()
 
     if(event == 22):
         print("Minimze")
@@ -141,15 +172,21 @@ if __name__ == '__main__':
     print_hi('PyCharm')
     app = QtWidgets.QApplication([])
     volume = GUI.QLabelMarker()
-    volume.show()
+    #volume.show()
     print(threading.active_count())
+
     FileServerThreaded = threading.Thread(name="daemon_backround_server",target=FileServer.serve_forever)
     FileServerThreaded.daemon = "True"
     FileServerThreaded.start()
     print(threading.active_count())
-    monitor = GUI.KeyMonitor()
-    monitor.keyPressed.connect(volume.keyPressEvent)
-    monitor.start_monitoring()
+    #monitor = GUI.KeyMonitor()
+    #monitor.keyPressed.connect(volume.keyPressEvent)
+    #monitor.start_monitoring()
+    keyboard.add_hotkey("ctrl+alt+1", lambda:volume.oneEvent())
+    keyboard.add_hotkey("ctrl+alt+2", lambda: volume.secondEvent())
+    keyboard.add_hotkey("ctrl+alt+3", lambda: volume.thirdEvent())
+    print("activated")
+    volume.show()
     app.exec_()
     print(threading.active_count())
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

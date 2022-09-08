@@ -49,7 +49,8 @@ def urlSearch(hwnd):
         link = wrapper.get_value()
         print(os.path.exists(link))
         if(os.path.exists(link) == True):
+            isURL = True
             print("Wir haben hier keinen Link")
-            return link
+            return isURL
     return link
 
