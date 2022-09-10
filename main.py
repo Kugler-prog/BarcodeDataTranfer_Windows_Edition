@@ -86,13 +86,13 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread, dwmsE
     #print("Das aktuelle Systemfenster ist",currentWindow)
     #print("Das globale Fenster ist",Wind)
     #print (event)
-    if( currentWindow != Wind and event == 9):
-        #volume.hide()
+    if( currentWindow != Wind and event == 9 and currentWindow != "python"):
+        volume.hide()
         print(win32gui.GetWindowText(win32gui.GetForegroundWindow()))
     #   print("Neues Fenster erwählt")
     #     volume.show()
     #     print("Hier ist eine Abweichung")
-    #     Wind = currentWindow
+       # Wind = currentWindow
     #     print(Wind)
     #     print(hex(event))
     #     height = (win32api.GetSystemMetrics(33) + win32api.GetSystemMetrics(4) +
@@ -185,6 +185,8 @@ if __name__ == '__main__':
     keyboard.add_hotkey("ctrl+alt+1", lambda:volume.oneEvent())
     keyboard.add_hotkey("ctrl+alt+2", lambda: volume.secondEvent())
     keyboard.add_hotkey("ctrl+alt+3", lambda: volume.thirdEvent())
+    keyboard.add_hotkey("ctrl+alt+esc", lambda: volume.disappearevent())
+    keyboard.add_hotkey("ctrl+alt+r", lambda: volume.resetPosition())
     print("activated")
     volume.show()
     app.exec_()

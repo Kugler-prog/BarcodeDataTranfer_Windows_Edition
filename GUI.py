@@ -61,8 +61,8 @@ class QLabelMarker(QLabel):
 
     def oneEvent(self):
         size = self.getImageSize()
-        if(self.isVisible()):
-            self.hide()
+        if (not self.isVisible()):
+            self.show()
         else:
             self.show()
             self.resize(size[0],size[1])
@@ -72,10 +72,9 @@ class QLabelMarker(QLabel):
 
     def secondEvent(self):
         size = self.getImageSize()
-        if (self.isVisible()):
-            self.hide()
-        else:
+        if (not self.isVisible()):
             self.show()
+        else:
             self.resize(size[0]*2, size[1]*2)
             self.printing()
             pixmap = QPixmap("CurrentCode.png")
@@ -83,14 +82,22 @@ class QLabelMarker(QLabel):
 
     def thirdEvent(self):
         size = self.getImageSize()
-        if (self.isVisible()):
-            self.hide()
+        if (not self.isVisible()):
+            self.show()
         else:
             self.show()
             self.resize(size[0]*4, size[1]*4)
             self.printing()
             pixmap = QPixmap("CurrentCode.png")
             self.setPixmap(pixmap.scaled(size[0]*4, size[1]*4))
+
+    def disappearevent(self):
+        if(self.isVisible()):
+            self.hide()
+
+    def resetPosition(self):
+        self.move(0,0)
+
 
     def mousePressEvent(self, ev):
         self.oldPos = ev.globalPos()
