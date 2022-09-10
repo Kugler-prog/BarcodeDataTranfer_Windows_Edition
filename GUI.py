@@ -18,16 +18,18 @@ import qrcode
 import  pyshorteners
 import validators
 import keyboard
-from pynput.keyboard import Key, Listener, KeyCode
+
 
 
 import FileAquisitionandTransfer
+import Server
 import Windows_Apps_Module
 from FileAquisitionandTransfer import fileSearch
 import pathlib
 import psutil
 child_handles = []
 
+server_ip = Server.get_ip()
 def WindowCallback(hwnd,param):
     child_handles.append(hwnd)
     return True
@@ -151,19 +153,19 @@ class QLabelMarker(QLabel):
             fileItem = fileItem.replace("\\","/")
             fileItem = fileItem.replace(" ","%20")
             print("Das aktuelle Itel ist",fileItem)
-            qrcode = segno.make(f"192.168.178.45:8000/{fileItem}")
+            qrcode = segno.make(f"{server_ip}:8000/{fileItem}")
             qrcode.save("CurrentCode.png", border=4)
         else:
             WindowProcessor = Windows_Apps_Module.WindowsAppHandler()
             WindowsWindow = win32gui.GetForegroundWindow()
             process = win32process.GetWindowThreadProcessId(WindowsWindow)
-            print("Leider kontten wir hier nix finden",process[1])
+            print("Leider konnten wir hier nix finden",process[1])
             WindowProcessor.ProcessProcessor(process[1],WindowsWindow)
             if(len(os.listdir("FileToServe")) != 0):
                 fileItem = os.listdir("FileToServe")[0]
                 fileItem = fileItem.replace("\\", "/")
                 fileItem = fileItem.replace(" ", "%20")
-                qrcode = segno.make(f"192.168.178.45:8000/{fileItem}")
+                qrcode = segno.make(f"{server_ip}:8000/{fileItem}")
                 qrcode.save("CurrentCode.png", border=4)
 
 

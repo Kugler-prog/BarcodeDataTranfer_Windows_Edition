@@ -22,11 +22,11 @@ import pywin
 import win32gui
 import winshell
 from PyQt5 import QtCore,QtGui,QtWidgets
-from fastapi import FastAPI
+
 import GUI
 import Server
-import tornado.ioloop
-import tornado.web
+
+
 from http.server import HTTPServer, BaseHTTPRequestHandler, SimpleHTTPRequestHandler
 
 
