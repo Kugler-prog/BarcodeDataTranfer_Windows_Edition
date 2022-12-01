@@ -71,7 +71,7 @@ def print_hi(name):
 
 
 
-# Block, welcher zuständig für die Einrichtung der Authentifikation beim Twisted webserver zuständig ist, basierend auf
+# Block, welcher zuständig für die Einrichtung der Authentifikation beim Twisted webserver zuständig ist, basierend auf https://stackoverflow.com/questions/52616999/basic-http-authentication-with-twisted-not-working
 @implementer(IRealm)
 class PublicHTMLRealm(object):
 

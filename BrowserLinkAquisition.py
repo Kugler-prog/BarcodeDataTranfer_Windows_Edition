@@ -31,7 +31,7 @@ def fileSearch(hwnd):
 
 
 # Mithilfe von PywinAuto wird hier bei einem Chrome Browserfenster der Inhalt der Adressleiste (die URL) ermittelt, hierfür wird die Anwendung pywinauto verwendet
-# Snippet entnommen von
+# Snippet entnommen von https://stackoverflow.com/questions/72594066/get-urls-of-opened-tabs-in-browser-pywinauto-python
 def urlSearch(hwnd):
     link = ""
     WindowName = win32gui.GetWindowText(win32gui.GetForegroundWindow())
