@@ -5,7 +5,10 @@ import win32gui
 import win32process
 from pywinauto import Application
 
-
+# Diese Klasse verwendet dasselbe Vorgehen für untere Verläufe, hierbei wird mithilfe von pywinauto das vorher ermittelte Element adressiert, welches den Dateititel enthält
+# Von diesem wird dann der Inhalt ermittelt und mithilfe des zuständigen Prozesses der Filehandle gesucht, welcher mit den Dateinamen im Element übereinstimmt
+# Wird ein Element gefunden, so wird dieses in den FileServed - Ordner kopiert
+# Dieser Ablauf ist identisch für alle weiter unten aufgelistete Fenster - Die unterschiede liegen lediglich im Element, welches verwendet wird
 class WindowsAppHandler():
     def __init__(self):
         super().__init__()
@@ -22,23 +25,16 @@ class WindowsAppHandler():
 
 
         if(win32gui.GetWindowText(Windowhandle) == "Windows Media Player"):
-            print("Hab dich gefunden, playa")
             app = Application(backend="uia").connect(handle= Windowhandle)
-            dlg = app.window(handle = Windowhandle)
-            #print(dlg.print_control_identifiers())
-            #print(app.Properties.child_window(title = "Status- und Befehlsleistenansicht"))
-            res = dlg.window(title = "Status- und Befehlsleistenansicht")
-            print(res.window_text())
-            rest = res.child_window(control_type="Edit")
-            löst = rest.get_value()
-            prozess = win32process.GetWindowThreadProcessId(Windowhandle)
-            proc = psutil.Process(prozess[1]).open_files()
-            print(proc)
-            press = dict(proc)
-            for key, value in press.items():
-                print(key)
-                if (löst in key):
-                    print("Begone Thost", key)
+            windowToConnectTo = app.window(handle = Windowhandle)
+            elementWithContent = windowToConnectTo.window(title = "Status- und Befehlsleistenansicht")
+            childWithContent = elementWithContent.child_window(control_type="Edit")
+            valueOfChild = childWithContent.get_value()
+            processId = win32process.GetWindowThreadProcessId(Windowhandle)
+            processParameter = psutil.Process(processId[1]).open_files()
+            parameterDictionary = dict(processParameter)
+            for key, value in parameterDictionary.items():
+                if (valueOfChild in key):
                     shutil.copy(key, "FileToServe")
                     return key
 
@@ -48,9 +44,9 @@ class WindowsAppHandler():
         for i in self.child_windows:
             if (win32gui.GetWindowText(i) != ""):
                 print("Endlich ein Name", win32gui.GetWindowText(i))
-                prozess = win32process.GetWindowThreadProcessId(i)
-                proc = psutil.Process(prozess[1]).open_files()
-                print(proc)
+                processId = win32process.GetWindowThreadProcessId(i)
+                processParameter = psutil.Process(processId[1]).open_files()
+                print(processParameter)
                 currentTrueProcess = win32gui.GetWindowText(i)
                 currentTrueHandle = i
         self.WindowAppsOperation(currentTrueProcess,currentTrueHandle)
@@ -59,61 +55,41 @@ class WindowsAppHandler():
         print(handler)
         if(Name == "Filme & TV"):
             app = Application(backend="uia").connect(handle = handler)
-            dlg = app.window(handle = handler)
-            #print(dlg.print_control_identifiers())
-            print(app.Properties.child_window(auto_id="MetadataPrimaryTextBlock"))
-            res = dlg.window(auto_id = "MetadataPrimaryTextBlock").wrapper_object()
-            tres = res.window_text()
-            print(tres)
-            prozesss = win32process.GetWindowThreadProcessId(handler)
-            procs = psutil.Process(prozesss[1]).open_files()
-            print(procs)
-            pross = dict(procs)
-            print(pross)
-            for key, value in pross.items():
-                print(key)
-                if(tres in key):
-                    print(key)
+            windowToConnectTo = app.window(handle = handler)
+            childWithContent = windowToConnectTo.window(auto_id = "MetadataPrimaryTextBlock").wrapper_object()
+            valueOfChild = childWithContent.window_text()
+            processId = win32process.GetWindowThreadProcessId(handler)
+            processParameter = psutil.Process(processId[1]).open_files()
+            parameterDictionary = dict(processParameter)
+            for key, value in parameterDictionary.items():
+                if(valueOfChild in key):
                     shutil.copy(key, "FileToServe")
                     return key
 
         if (Name == "Groove-Musik"):
             app = Application(backend="uia").connect(handle=handler)
-            dlg = app.window(handle=handler)
-            print(dlg.print_control_identifiers())
-            print(app.Properties.child_window(auto_id="NavigateToNowPlayingPageButton"))
-            res = dlg.window(auto_id="NavigateToNowPlayingPageButton").wrapper_object()
-            tres = res.window_text()
-            cres = tres.replace(", , Aktuelle Wiedergabe,","")
-            print(cres)
-            prozesss = win32process.GetWindowThreadProcessId(handler)
-            procs = psutil.Process(prozesss[1]).open_files()
-            print(procs)
-            pross = dict(procs)
-            print(pross)
-            for key, value in pross.items():
-                print(key)
-                if (cres in key):
-                    print("Begone Thost",key)
+            windowToConnectTo = app.window(handle=handler)
+            childWithContent = windowToConnectTo.window(auto_id="NavigateToNowPlayingPageButton").wrapper_object()
+            # Erforderlicher Ersatz, wegen der Art und Weise wie Groove-Musik mit den Namen umgeht
+            contentReplacement = childWithContent.replace(", , Aktuelle Wiedergabe,", "")
+            processId = win32process.GetWindowThreadProcessId(handler)
+            processParameter = psutil.Process(processId[1]).open_files()
+            parameterDictionary = dict(processParameter)
+            for key, value in parameterDictionary.items():
+                if (contentReplacement in key):
                     shutil.copy(key, "FileToServe")
                     return key
 
         if(Name == "Fotos"):
             app = Application(backend="uia").connect(handle=handler)
-            dlg = app.window(handle=handler)
-            #print(dlg.print_control_identifiers())
-            print(app.Properties.child_window(auto_id="TitleBarTitle"))
-            res = dlg.window(auto_id="TitleBarTitle").wrapper_object()
-            tres = res.window_text()
-            print(tres)
-            prozesss = win32process.GetWindowThreadProcessId(handler)
-            procs = psutil.Process(prozesss[1]).open_files()
-            print(procs)
-            pross = dict(procs)
-            print(pross)
-            for key, value in pross.items():
-                #print(key)
-                if (tres in key):
-                    print("Begone Thost", key)
+            windowToConnectTo = app.window(handle=handler)
+            childWithContent = windowToConnectTo.window(auto_id="TitleBarTitle").wrapper_object()
+            valueOfChild = childWithContent.window_text()
+            processId = win32process.GetWindowThreadProcessId(handler)
+            processParameter = psutil.Process(processId[1]).open_files()
+            parameterDictionary = dict(processParameter)
+
+            for key, value in parameterDictionary.items():
+                if (valueOfChild in key):
                     shutil.copy(key, "FileToServe")
                     return key
