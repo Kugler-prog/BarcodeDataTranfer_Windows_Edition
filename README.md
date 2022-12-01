@@ -4,7 +4,7 @@ Dieses Repository soll als Beispiel gelten, für einen möglichen Ansatz einen B
 Die Anwendung wurde mithilfe der PyCharm - IDE unter Python 3.10 entwickelt.
 Weitere Informationen und Verlinkungen befinden sich im Modul in den Kommentaren zu den jeweiligen Abschnitten
 
-##Installation und Verwendung##
+## Installation und Verwendung
 Um die Anwendung zu installieren reicht es, wenn man das betreffende Projekt in einer IDE öffnet (Diese Anwendung hier wurde unter PyCharm implementiert und getestet - für die Funktion auf anderen IDE's kann keine Garantie übernommen werden).
 
 Die Anwendung wird  gestartet, indem man sie in der bevorzugten IDE lädt oder Ausführt und auf das Fenster, welches man "overlayed" haben möchte, draufklickt. Es ist noch ein existenter Bug, dass es nicht sofort angezeigt wird.Im Zweifelsfall ist es besser ein paar mal auf das ausgewählte Fenster zu klicken.
@@ -13,7 +13,7 @@ Es kann sein, dass einige Packages bei bedarf nicht vorinstalliert sind, diese s
 
 
 
-##Aktuelle Features der Anwendung##:
+## Aktuelle Features der Anwendung:
 - Marker, welcher im oberen rechten Bereich der Titlebar angezeigt wird 
 - Dieser ändert sich vom Inhalt dynamisch, abhängig von dem aktuell ausgewählten Fenster
 - Marker bewegt sich dynamisch mit und reagiert auf verschiedene Fenstergrößen
@@ -23,7 +23,7 @@ Es kann sein, dass einige Packages bei bedarf nicht vorinstalliert sind, diese s
 - Die Passwörter finden sich in der Datei "hhtpd.password"
 - Die aktuell verwendeten Tastenkombinationen finden sich in der "ConfigFile.ini"
 
-## Versionen##
+## Versionen
 master-Branch: Die aktuellste Variante des Prototypen (Zweiter Prototyp)
 Effizienteres_Backend_passiv: Erster Prototyp - passive Variante
 Effizienteres_Backend_mit_Hotkeys: Erster Prototyp - aktive Variante mit Hotkeys und Mausevents
