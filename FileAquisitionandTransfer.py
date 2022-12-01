@@ -7,7 +7,6 @@ from pywinauto import Application
 def fileSearch(hwnd):
     filepath = ""
     foundflag = False
-
     username = os.getenv("username")
     path = os.path.join("C:\\", "Users", username, "AppData", "Roaming", "Microsoft", "Windows", "Recent")
     windowTitleName = win32gui.GetWindowText(hwnd)

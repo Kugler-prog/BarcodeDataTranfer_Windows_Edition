@@ -29,59 +29,7 @@ class QLabelMarker(QLabel):
         super().__init__()
         self.initUI()
 
-    def getImageSize(self):
-        im = Image.open("CurrentCode.png")
-        h,w = im.size
-        return im.size
 
-
-    def standardSize(self):
-        size = self.getImageSize()
-        if (not self.isVisible()):
-            self.show()
-        else:
-            self.show()
-            self.resize(size[0],size[1])
-            self.setMarker()
-            pixmap = QPixmap("CurrentCode.png")
-            self.setPixmap(pixmap.scaled(size[0], size[1]))
-
-    def doubleSize(self):
-        size = self.getImageSize()
-        if (not self.isVisible()):
-            self.show()
-        else:
-            self.resize(size[0]*2, size[1]*2)
-            self.setMarker()
-            pixmap = QPixmap("CurrentCode.png")
-            self.setPixmap(pixmap.scaled(size[0]*2, size[1]*2))
-
-    def quadrupleSize(self):
-        size = self.getImageSize()
-        if (not self.isVisible()):
-            self.show()
-        else:
-            self.show()
-            self.resize(size[0]*4, size[1]*4)
-            self.setMarker()
-            pixmap = QPixmap("CurrentCode.png")
-            self.setPixmap(pixmap.scaled(size[0]*4, size[1]*4))
-
-    def disappearevent(self):
-        if(self.isVisible()):
-            self.hide()
-
-    def resetPosition(self):
-        self.move(0,0)
-
-
-    def mousePressEvent(self, ev):
-        self.oldPos = ev.globalPos()
-
-    def mouseMoveEvent(self, ev):
-        delta = QPoint(ev.globalPos() - self.oldPos)
-        self.move(self.x() + delta.x(), self.y() + delta.y())
-        self.oldPos = ev.globalPos()
 
 # Initialisierung des UI's
     def initUI(self):
@@ -92,7 +40,9 @@ class QLabelMarker(QLabel):
         self.setWindowFlags(Qt.FramelessWindowHint|Qt.WindowStaysOnTopHint)
         self.oldPos = self.pos()
 
-#Methode mit welcher der Marker generiert wird, abhängig davon, ob der Fenstertitel Google-Chrome im Namen enthält wird entsprechend
+#Methode mit welcher der Marker generiert wird, abhängig davon, ob der Fenstertitel Google-Chrome im Namen enthält wird entsprechend weiter die betreffende Datei gesucht
+# Mithilfe eines shell-Dispatches wird das Ziel der ermittelten Verknüpfung ermittelt
+# Wenn ein Fund erfolgt, wird es entsprechend in den FileToServe-Ordner kopiert
     def setMarker(self):
         if(len(os.listdir("FileToServe")) == 0):
             print()
@@ -101,7 +51,6 @@ class QLabelMarker(QLabel):
                 deleteFile = os.path.join("FileToServe/", f)
                 os.remove(deleteFile)
         windowHandle = win32gui.GetForegroundWindow()
-        flagOfFunction = fileSearch(windowHandle)
 
         if("Google Chrome" in win32gui.GetWindowText(win32gui.GetForegroundWindow())):
             returnedLink = FileAquisitionandTransfer.urlSearch(windowHandle)
@@ -110,8 +59,7 @@ class QLabelMarker(QLabel):
             qrcode = segno.make(short_url)
             qrcode.save("CurrentCode.png", border=4)
 
-
-        elif(flagOfFunction == True):
+        elif(fileSearch(windowHandle) == True):
             fileItem = os.listdir("FileToServe")[0]
             fileItem = fileItem.replace("\\","/")
             fileItem = fileItem.replace(" ","%20")

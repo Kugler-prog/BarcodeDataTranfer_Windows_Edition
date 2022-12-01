@@ -27,9 +27,8 @@ class ServerHandler(http.server.SimpleHTTPRequestHandler):
         super().__init__(*args, directory="FileToServe", **kwargs)
         print("activated")
 
-
-
-
+# Server basierend auf https://github.com/f47h3r/basic-auth-simple-https-server implementiert, die Authentifikation konnte nicht zuverlässig eingerichtet werden,
+# Deswegen wurde die Grundstruktur beibehalten
 class AuthHTTPRequestHandler(SimpleHTTPRequestHandler):
 
     def do_HEAD(self):
@@ -60,13 +59,17 @@ class AuthHTTPRequestHandler(SimpleHTTPRequestHandler):
 
 FileServer = HTTPServer(("",8000),ServerHandler)
 
+# Eventhook basierend auf der Implementierung im Proof of Concept Prototypen
 def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread, dwmsEventTime):
     global Wind
     currentWindow = win32gui.GetWindowText(win32gui.GetForegroundWindow())
 
     if(currentWindow != Wind and event == 9 and currentWindow != "python"):
-        displayedMarker.hide()
-        print(win32gui.GetWindowText(win32gui.GetForegroundWindow()))
+        displayedMarker.show()
+        displayedMarker.setMarker()
+        displayedMarker.moveit()
+
+
 
     if(event == 11):
         displayedMarker.show()
@@ -105,7 +108,7 @@ if hook == 0:
 msg = ctypes.wintypes.MSG()
 
 
-
+# Einrichten der Anwendung, löschen überbliebener Files eines letzten Durchlaufs, sowie der start des Servers im Thread
 if __name__ == '__main__':
     print(os.listdir("FileToServe"))
     for f in os.listdir("FileToServe"):
@@ -119,11 +122,6 @@ if __name__ == '__main__':
     FileServerThreaded.daemon = "True"
     FileServerThreaded.start()
 
-    keyboard.add_hotkey("ctrl+alt+1", lambda:displayedMarker.standardSize())
-    keyboard.add_hotkey("ctrl+alt+2", lambda: displayedMarker.doubleSize())
-    keyboard.add_hotkey("ctrl+alt+3", lambda: displayedMarker.quadrupleSize())
-    keyboard.add_hotkey("ctrl+alt+esc", lambda: displayedMarker.disappearevent())
-    keyboard.add_hotkey("ctrl+alt+r", lambda: displayedMarker.resetPosition())
 
     displayedMarker.show()
     app.exec_()
